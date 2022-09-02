@@ -1,4 +1,4 @@
-<template>
+<template xmlns="http://www.w3.org/1999/html">
   <section class="main">
     <div class="container">
       <div class="top">
@@ -8,9 +8,9 @@
 <!--        </div>-->
       </div>
       <div class="bot">
-          <div v-for="(file, key) in files" :key="key" class="file-listing" @click="getImageModal">
+          <div v-for="(file, key) in files" :key="key" class="file-listing">
             <div class="wrapper" @click="showModal">
-              <img class="preview" v-bind:ref="'image'+parseInt( key )" :class="{activeHorizon: checked[key].horizon, activeVertical: checked[key].vertical}" alt="img" src=""/>
+              <img class="preview" v-bind:src="imagePreview[key]" :class="{activeHorizon: checked[key].horizon, activeVertical: checked[key].vertical}" alt="img" src=""/>
             </div>
             <div class="check-box">
               <input type="checkbox" v-model="checked[key].horizon" @click="checkTaskDone(key)"> вписывание по горизонтали <br/>
@@ -20,12 +20,11 @@
       </div>
     </div>
   </section>
-
   <ModalWindow v-show="isModalVisible" @close="closeModal">
     <template v-slot:body>
       <div v-for="(file, key) in files" :key="key" class="file-listing" >
         <div class="wrapper wrapper-modal">
-          <img class="preview" v-bind:src="url[key]" :class="{activeHorizon: checked[key].horizon, activeVertical: checked[key].vertical}" alt="img"/>
+          <img class="preview" v-bind:src="imagePreview[key]" :class="{activeHorizon: checked[key].horizon, activeVertical: checked[key].vertical}" alt="img"/>
         </div>
         <div class="check-box">
           <input type="checkbox" v-model="checked[key].horizon" @click="checkTaskDone(key)"> вписывание по горизонтали <br/>
@@ -35,8 +34,8 @@
     </template>
   </ModalWindow>
 </template>
-<script>
 
+<script>
 import ModalWindow from "@/components/newdisk/ModalWindow";
 export default {
   name: "NewDisk",
@@ -45,7 +44,7 @@ export default {
     return {
       files: [],
       checked: [],
-      url: [],
+      imagePreview: [],
       isModalVisible: false,
     }
   },
@@ -54,51 +53,71 @@ export default {
       let uploadedFiles = this.$refs.files.files;
       for( let i = 0; i < uploadedFiles.length; i++ ){
         this.files.push( uploadedFiles[i] )
-        //console.log(this.files);
         this.checked.push(
             {[i]: [
                 {horizon: false},
                 {vertical: false}
               ]},
-        );
-        //console.log(this.checked);
+        )
+        console.log(this.files)
       }
       this.getImagePreviews();
     },
-    getImagePreviews(){
-      for( let i = 0; i < this.files.length; i++ ){
-        if ( /\.(jpe?g|png|gif)$/i.test( this.files[i].name ) ) {
-          let reader = new FileReader();
-          reader.addEventListener("load", function(){
-            this.$refs['image'+parseInt( i )][0].src = reader.result;
-          }.bind(this), false);
-          reader.readAsDataURL( this.files[i] );
-        }
+    getImagePreviews() {
+      for (let i = 0; i < this.files.length; i++) {
+        this.imagePreview.push(URL.createObjectURL(this.files[i]))
       }
+      this.saveActions()
     },
 
     checkTaskDone(index) {
       if (this.checked[index].horizon === true) {
-        this.checked[index].horizon = false;
+        this.checked[index].horizon = false
       }
       if (this.checked[index].vertical === true) {
-        this.checked[index].vertical = false;
+        this.checked[index].vertical = false
       }
     },
-//Модальное окно
-    getImageModal() {
-      for (let i = 0; i < this.files.length; i++) {
-        this.url.push(URL.createObjectURL(this.files[i]))
-        //console.log(URL.createObjectURL(this.files[i]))
+
+    saveActions() {
+      localStorage.setItem('imagePreview', JSON.stringify(this.imagePreview))
+      localStorage.setItem('files', JSON.stringify(this.files))
+      localStorage.setItem('checked', JSON.stringify(this.checked))
+    },
+
+    getActions() {
+      let getParseImage = []
+      this.imagePreview.pop()
+      getParseImage.push(JSON.parse(localStorage.getItem('imagePreview')))
+      for (const [index, value] of getParseImage[0].entries()) {
+        this.imagePreview.push(value)
+      }
+      let getParseFiles = []
+      this.files.pop()
+      getParseFiles.push(JSON.parse(localStorage.getItem('files')))
+      for (const [index, value] of getParseFiles[0].entries()) {
+        this.files.push(value)
+        console.log(this.files)
+      }
+      let getParseChecked = []
+      this.checked.pop()
+      getParseChecked.push(JSON.parse(localStorage.getItem('checked')))
+      for (const [index, value] of getParseChecked[0].entries()) {
+        this.checked.push(value)
       }
     },
+
     showModal() {
       this.isModalVisible = true;
     },
     closeModal() {
       this.isModalVisible = false;
     },
-//Пагинация
+  },
+  mounted() {
+    if (localStorage.length > 0) {
+      this.getActions()
+    }
   }
 }
 </script>
@@ -185,6 +204,4 @@ export default {
     height: 146.25px;
   }
 }
-
-
 </style>
